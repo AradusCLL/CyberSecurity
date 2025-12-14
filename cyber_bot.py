@@ -194,12 +194,12 @@ async def handle_callback_query(update: Update, context):
         )
         
     elif data == "nav_help":
-        # ИСПРАВЛЕННЫЙ БЛОК "ПОМОЩЬ / КОМАНДЫ" (Убраны потенциально конфликтные символы)
+        # ИСПРАВЛЕННЫЙ БЛОК "ПОМОЩЬ / КОМАНДЫ"
         help_text = (
             "🛡️ **Список команд и функций:**\n\n"
             "— /start - Главное меню.\n" 
             "— /reset - Сбросить контекст разговора.\n" 
-            "— **Текст, Ссылка или Фото** — Автоматический анализ.\n" # Упрощено
+            "— **Текст, Ссылка или Фото** — Автоматический анализ.\n" 
         )
         await query.edit_message_text(
             help_text,
@@ -288,6 +288,7 @@ async def handle_link_analysis(update: Update, context):
             )
 
     except Exception as e:
+        # Ловим любые другие ошибки, связанные с API или сетью
         await update.message.reply_text(f"❌ Ошибка анализа ссылки: {e}")
 
 
@@ -313,7 +314,7 @@ async def handle_photo(update, context):
     try:
         image_part = types.Part.from_bytes(data=image_bytes, mime_type='image/jpeg') 
         response = chat.send_message([image_part, vision_prompt])
-        response_text = response.text
+        response_text = response.text # Сохраняем ответ
         
         # --- 1. ПЕРВАЯ ПОПЫТКА С MARKDOWN ---
         try:
@@ -334,16 +335,15 @@ async def handle_photo(update, context):
             )
 
     except Exception as e:
+        # Ловим любые другие ошибки, связанные с API или сетью
         await update.message.reply_text(f"❌ Критическая ошибка фотоанализа: {e}")
 
 # --- ОБРАБОТЧИК ОШИБОК ---
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Логирует ошибки, вызванные обработчиками обновлений."""
-    # Мы убираем вывод сообщения об ошибке BadRequest пользователю, 
-    # так как теперь у нас есть надежный Fallback в обработчиках.
+    # Мы пропускаем BadRequest, так как они обрабатываются Fallback-логикой в основных функциях.
     if isinstance(context.error, BadRequest) and 'Can\'t parse entities' in str(context.error):
-         print(f"⚠️ Catching expected Markdown error: {context.error}")
-         # Не отправляем сообщение пользователю, так как это обрабатывается Fallback'ом
+         print(f"⚠️ Catching expected Markdown error in error_handler: {context.error}")
          return
     
     # Логируем все остальные, не пойманные ошибки
