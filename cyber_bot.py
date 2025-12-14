@@ -137,18 +137,25 @@ async def handle_callback_query(update: Update, context):
                 model='gemini-2.5-flash',
                 contents=[summary_prompt, text_to_summarize]
             )
+            response_text = response.text
             
-            await query.edit_message_text(
-                f"**📝 Краткое резюме:**\n\n{response.text}", 
-                parse_mode='Markdown',
-                reply_markup=build_navigation_markup()
-            )
-        except BadRequest as e:
-            # Отдельный обработчик для ошибки парсинга Markdown
-            await query.edit_message_text(
-                f"❌ Ошибка форматирования текста (Markdown). Вероятно, Gemini сгенерировал сложный символ. Попробуйте сбросить чат. Подробнее: {e}",
-                reply_markup=build_navigation_markup()
-            )
+            # --- 1. ПЕРВАЯ ПОПЫТКА С MARKDOWN ---
+            try:
+                await query.edit_message_text(
+                    f"**📝 Краткое резюме:**\n\n{response_text}", 
+                    parse_mode='Markdown',
+                    reply_markup=build_navigation_markup()
+                )
+            
+            # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
+            except BadRequest as e:
+                # Если ошибка парсинга Markdown, отправляем как plain text с предупреждением
+                await query.edit_message_text(
+                    f"🚨 **Внимание! (Резюме)**: Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n{response_text}", 
+                    parse_mode='Markdown', # Используем Markdown только для заголовка "Внимание!"
+                    reply_markup=build_navigation_markup()
+                )
+
         except Exception as e:
             await query.edit_message_text(f"❌ Ошибка при создании резюме: {e}", reply_markup=build_navigation_markup())
         finally:
@@ -215,11 +222,27 @@ async def handle_text(update, context):
     
     try:
         response = chat.send_message(msg) 
+        response_text = response.text # Сохраняем ответ
         
-        await update.message.reply_text(
-            response.text, 
-            reply_markup=build_summary_markup(update.effective_message.message_id + 1)
-        )
+        # --- 1. ПЕРВАЯ ПОПЫТКА С MARKDOWN ---
+        try:
+            await update.message.reply_text(
+                response_text, 
+                parse_mode='Markdown',
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
+        
+        # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
+        except BadRequest as e:
+            # Если ошибка парсинга Markdown, отправляем как plain text
+            print(f"⚠️ Ошибка Markdown в handle_text, повторная отправка без форматирования: {e}")
+            await update.message.reply_text(
+                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
+                # Используем Markdown только для заголовка "Внимание!"
+                parse_mode='Markdown', 
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
+
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка Gemini: {e}")
 
@@ -244,11 +267,26 @@ async def handle_link_analysis(update: Update, context):
 
     try:
         response = chat.send_message(analysis_prompt)
+        response_text = response.text
         
-        await update.message.reply_text(
-            response.text, 
-            reply_markup=build_summary_markup(update.effective_message.message_id + 1)
-        )
+        # --- 1. ПЕРВАЯ ПОПЫТКА С MARKDOWN ---
+        try:
+            await update.message.reply_text(
+                response_text, 
+                parse_mode='Markdown', 
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
+        
+        # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
+        except BadRequest as e:
+            # Если ошибка парсинга Markdown, отправляем как plain text
+            print(f"⚠️ Ошибка Markdown в handle_link_analysis, повторная отправка без форматирования: {e}")
+            await update.message.reply_text(
+                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
+                parse_mode='Markdown', 
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
+
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка анализа ссылки: {e}")
 
@@ -275,11 +313,25 @@ async def handle_photo(update, context):
     try:
         image_part = types.Part.from_bytes(data=image_bytes, mime_type='image/jpeg') 
         response = chat.send_message([image_part, vision_prompt])
+        response_text = response.text
         
-        await update.message.reply_text(
-            response.text, 
-            reply_markup=build_summary_markup(update.effective_message.message_id + 1)
-        )
+        # --- 1. ПЕРВАЯ ПОПЫТКА С MARKDOWN ---
+        try:
+            await update.message.reply_text(
+                response_text, 
+                parse_mode='Markdown', 
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
+        
+        # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
+        except BadRequest as e:
+            # Если ошибка парсинга Markdown, отправляем как plain text
+            print(f"⚠️ Ошибка Markdown в handle_photo, повторная отправка без форматирования: {e}")
+            await update.message.reply_text(
+                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
+                parse_mode='Markdown', 
+                reply_markup=build_summary_markup(update.effective_message.message_id + 1)
+            )
 
     except Exception as e:
         await update.message.reply_text(f"❌ Критическая ошибка фотоанализа: {e}")
@@ -287,28 +339,27 @@ async def handle_photo(update, context):
 # --- ОБРАБОТЧИК ОШИБОК ---
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Логирует ошибки, вызванные обработчиками обновлений."""
-    print(f"⚠️ Update {update} вызвал ошибку: {context.error}")
+    # Мы убираем вывод сообщения об ошибке BadRequest пользователю, 
+    # так как теперь у нас есть надежный Fallback в обработчиках.
+    if isinstance(context.error, BadRequest) and 'Can\'t parse entities' in str(context.error):
+         print(f"⚠️ Catching expected Markdown error: {context.error}")
+         # Не отправляем сообщение пользователю, так как это обрабатывается Fallback'ом
+         return
+    
+    # Логируем все остальные, не пойманные ошибки
+    print(f"🚨 Критическая не пойманная ошибка: {context.error}")
 
     if update and update.effective_message:
-        # Попытка уведомить пользователя об ошибке
         try:
-            error_message = f"🚨 **Внутренняя ошибка!** 🚨\n\nПроизошла непредвиденная ошибка. "
-            
-            if isinstance(context.error, BadRequest) and 'Can\'t parse entities' in str(context.error):
-                 error_message += "Вероятно, проблема в форматировании Markdown. Попробуйте сбросить чат командой /reset."
-            else:
-                 error_message += "Пожалуйста, повторите запрос или сбросьте контекст /reset."
-
             await update.effective_message.reply_text(
-                error_message,
+                f"🚨 **Критическая ошибка!** 🚨\n\nПроизошла непредвиденная ошибка, которую не удалось обработать. Пожалуйста, попробуйте команду /reset.",
                 parse_mode='Markdown'
             )
         except Exception:
-            # Если даже отправка сообщения об ошибке не удалась
             print("Не удалось отправить сообщение об ошибке пользователю.")
 
 
-# --- 4. ЗАПУСК ----
+# --- 4. ЗАПУСК ---
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     
