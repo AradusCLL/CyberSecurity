@@ -109,7 +109,7 @@ async def reset_chat(update: Update, context):
         await update.message.reply_text("Контекст и так пуст.")
 
 
-# Обработчик нажатия кнопок 
+# Обработчик нажатия кнопок
 async def handle_callback_query(update: Update, context):
     query = update.callback_query
     await query.answer() 
