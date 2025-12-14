@@ -308,7 +308,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             print("Не удалось отправить сообщение об ошибке пользователю.")
 
 
-# --- 4. ЗАПУСК ---
+# --- 4. ЗАПУСК ----
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     
