@@ -10,7 +10,7 @@ from telegram.error import BadRequest
 from google import genai
 from google.genai import types
 
-# --- 1. КОНФИГУРАЦИЯ И КЛЮЧИ ---
+# --- 1.КЛЮЧИ ---
 
 BOT_TOKEN = "8259649452:AAGBclEBC9U04h2n6ymElPeOEjklirvkLsw"
 GEMINI_KEY = "AIzaSyBaOhR_e9U3VzBmgKwFaopwMOLYOavFnko" 
@@ -149,10 +149,12 @@ async def handle_callback_query(update: Update, context):
             
             # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
             except BadRequest as e:
-                # Если ошибка парсинга Markdown, отправляем как plain text с предупреждением
+                # Отправляем как plain text, используя HTML только для гарантированного заголовка
+                fallback_text = f"🚨 <b>Внимание! (Резюме)</b>: Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n{response_text}"
+                print(f"⚠️ Ошибка Markdown в резюме, повторная отправка с HTML-заголовком: {e}")
                 await query.edit_message_text(
-                    f"🚨 **Внимание! (Резюме)**: Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n{response_text}", 
-                    parse_mode='Markdown', # Используем Markdown только для заголовка "Внимание!"
+                    fallback_text, 
+                    parse_mode='HTML', 
                     reply_markup=build_navigation_markup()
                 )
 
@@ -234,12 +236,12 @@ async def handle_text(update, context):
         
         # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
         except BadRequest as e:
-            # Если ошибка парсинга Markdown, отправляем как plain text
-            print(f"⚠️ Ошибка Markdown в handle_text, повторная отправка без форматирования: {e}")
+            # Отправляем как plain text, используя HTML только для гарантированного заголовка
+            fallback_text = f"🚨 <b>Внимание!</b> Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text
+            print(f"⚠️ Ошибка Markdown в handle_text, повторная отправка с HTML-заголовком: {e}")
             await update.message.reply_text(
-                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
-                # Используем Markdown только для заголовка "Внимание!"
-                parse_mode='Markdown', 
+                fallback_text, 
+                parse_mode='HTML', 
                 reply_markup=build_summary_markup(update.effective_message.message_id + 1)
             )
 
@@ -279,11 +281,12 @@ async def handle_link_analysis(update: Update, context):
         
         # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
         except BadRequest as e:
-            # Если ошибка парсинга Markdown, отправляем как plain text
-            print(f"⚠️ Ошибка Markdown в handle_link_analysis, повторная отправка без форматирования: {e}")
+            # Отправляем как plain text, используя HTML только для гарантированного заголовка
+            fallback_text = f"🚨 <b>Внимание!</b> Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text
+            print(f"⚠️ Ошибка Markdown в handle_link_analysis, повторная отправка с HTML-заголовком: {e}")
             await update.message.reply_text(
-                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
-                parse_mode='Markdown', 
+                fallback_text, 
+                parse_mode='HTML', 
                 reply_markup=build_summary_markup(update.effective_message.message_id + 1)
             )
 
@@ -326,11 +329,12 @@ async def handle_photo(update, context):
         
         # --- 2. ПОВТОРНАЯ ПОПЫТКА (FALLBACK) БЕЗ MARKDOWN ---
         except BadRequest as e:
-            # Если ошибка парсинга Markdown, отправляем как plain text
-            print(f"⚠️ Ошибка Markdown в handle_photo, повторная отправка без форматирования: {e}")
+            # Отправляем как plain text, используя HTML только для гарантированного заголовка
+            fallback_text = f"🚨 <b>Внимание!</b> Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text
+            print(f"⚠️ Ошибка Markdown в handle_photo, повторная отправка с HTML-заголовком: {e}")
             await update.message.reply_text(
-                "🚨 **Внимание!** Gemini сгенерировал сложный текст. Отправляю без форматирования.\n\n" + response_text, 
-                parse_mode='Markdown', 
+                fallback_text, 
+                parse_mode='HTML', 
                 reply_markup=build_summary_markup(update.effective_message.message_id + 1)
             )
 
