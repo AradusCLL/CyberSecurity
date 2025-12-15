@@ -13,7 +13,7 @@ from google.genai import types
 # --- 1.КЛЮЧИ ---
 
 BOT_TOKEN = "8259649452:AAGBclEBC9U04h2n6ymElPeOEjklirvkLsw"
-GEMINI_KEY = "AIzaSyBaOhR_e9U3VzBmgKwFaopwMOLYOavFnko" 
+GEMINI_KEY = "AIzaSyBlALy3QDmhdzYcqmXad1ldIKQUQBiPFcI" 
 
 # Инициализация Gemini
 try:
